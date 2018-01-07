@@ -1,0 +1,8 @@
+{
+  "name": "smoothie",
+  "version": "1.0.0",
+  "main": "require.js",
+  "description": "Tarp.require - a lightweight JavaScript module loader",
+  "license": "MIT",
+  "repository": "usemodj/smoothie"
+}
