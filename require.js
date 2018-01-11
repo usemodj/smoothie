@@ -20,7 +20,7 @@
 //      environment for each module and runs its code. Scroll down to the end of
 //      the file to see the function definition.
 (function() {
-  'use strict';
+  "use strict";
 
   var cache = Object.create(null);
   var root = (new URL("./node_modules/", location.href)).href;
@@ -57,7 +57,7 @@
       cached.p = new Promise(function(res, rej) {
         request = cached.r = new XMLHttpRequest();
         request.onload = request.onerror = request.ontimeout = function() {
-          var req, done, pattern, match, loaded = 0;
+          var tmp, done, pattern, match, loaded = 0;
           // `request` might have been changed by line 74ff
           if (request = cached.r) {
             cached.r = null;
@@ -68,9 +68,9 @@
                 // NOTE Replace pending request of actual module with the already completed request and abort the
                 //      pending request. This will call onloadend of the pending request, which will load the module.
                 if (cached.r) {
-                  req = cached.r;
+                  tmp = cached.r;
                   cached.r = request;
-                  req.abort();
+                  tmp.abort();
                 }
                 return;
               }
@@ -81,13 +81,15 @@
             if ((request.status > 99) && (request.status < 400)) {
               cached.s = request.responseText;
               cached.t = request.getResponseHeader("Content-Type");
-              done = function() { if (--loaded <= 0) res(cached); };
+              done = function() { if (--loaded < 0) res(cached); };
               // NOTE Pre-load submodules if the request is asynchronous (timeout > 0).
               if (request.timeout) {
                 pattern = /require(?:\.resolve)?\((?:"((?:[^"\\]|\\.)+)"|'((?:[^'\\]|\\.)+)')\)/g;
                 while((match = pattern.exec(cached.s)) !== null) {
-                  loaded++;
-                  load(match[1]||match[2], href, true).then(done, done);
+                  if (!(tmp = load(match[1]||match[2], href, true)).r) {
+                    loaded++;
+                    tmp.p.then(done, done);
+                  }
                 }
               }
               done();
@@ -104,7 +106,7 @@
       try {
         request.abort();
         request.timeout = asyn ? 10000 : 0;
-        request.open('GET', href, asyn);
+        request.open("GET", href, asyn);
         request.send();
       }
       catch (e) {
@@ -113,7 +115,7 @@
     }
     if (cached.e)
       throw cached.e;
-    return asyn ? cached.p : cached;
+    return cached;
   }
 
   function evaluate(cached, parent) {
@@ -158,7 +160,7 @@
         pwd = parent ? parent.uri : location.href;
       return asyn ?
         new Promise(function(res, rej) {
-          load(id, pwd, asyn).then(afterLoad).then(res, rej);
+          load(id, pwd, asyn).p.then(afterLoad).then(res, rej);
         }):
         afterLoad(load(id, pwd, asyn));
     }
@@ -169,5 +171,5 @@
     return require;
   }
 
-  self.require = factory(null);
+  (self.Tarp = self.Tarp || {}).require = factory(null);
 })();
